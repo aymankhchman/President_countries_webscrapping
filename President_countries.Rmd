@@ -1,0 +1,118 @@
+---
+title: "president_countries"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE)
+```
+
+### Loading library
+
+```{r}
+library("tidyverse")
+library("rvest")
+```
+
+
+```{r include=FALSE}
+countries <- read_csv("C:/Users/Alaa/Desktop/countryContinent.csv")
+
+```
+
+### Loading data 
+
+we'll scrap data from wikipedia
+
+```{r}
+webpage <- read_html("https://en.wikipedia.org/wiki/List_of_state_leaders_in_2019#Africa")
+```
+
+### Cleaning data
+
+```{r}
+texte <- webpage %>%
+  html_nodes("a , li+ li li")%>%
+  html_text()
+
+texte_1 <- texte[str_detect(texte,"present")]
+
+texte_2 <- texte_1[str_detect(texte_1,"Minister",negate = TRUE)]
+
+df <- data.frame(president = texte_2)
+
+```
+
+
+```{r}
+data_president <-  df %>%
+  separate(president,c("president", "country"),sep = ",")%>%
+  filter(str_detect(country,"present"))%>%
+  mutate(pays = str_replace_all(country,".*of",""),
+         pays = str_replace_all(pays,"\\(.*",""),
+         annee_debut = str_extract_all(country,"\\d\\d\\d\\d"),
+         present = 2020,
+         president = str_replace_all(president,".*–",""))%>%
+   filter(str_detect(annee_debut,"[:alpha:]",negate = TRUE))%>%
+   mutate(annee_debut = as.numeric(annee_debut),
+          annee_au_pouvoir = present - annee_debut)%>%
+  distinct(president,.keep_all = TRUE)
+
+data_president[159,1] <- "Simonetta Sommaruga"
+
+```
+
+
+
+### Who are the most president who stayed longer in power ? 
+
+```{r}
+
+data_president%>%
+    filter(str_detect(country,"President"))%>%
+    mutate(president_country = paste0(president,",",pays),
+           president_country = fct_reorder(president_country,annee_au_pouvoir))%>%
+    arrange(desc(annee_au_pouvoir))%>%
+    head(30)%>%
+    ggplot(mapping = aes(president_country,annee_au_pouvoir))+
+    geom_col(fill = "#3582b6")+
+    coord_flip()+
+    theme_minimal()+
+    theme(panel.grid = element_blank(),
+          plot.title = element_text(hjust = 0.08))+
+    labs(y = "Année au pouvoir", x = "Président au pouvoir", title = "Les 30 présidents qui sont au pouvoir depuis un long moment ")
+
+```
+
+
+
+### How about looking at whole continent ? Which continent has the most president that had more than two mandate ? 
+
+
+```{r}
+data_president_continent <- data_president %>%
+  mutate(pays = str_trim(pays))%>%
+  inner_join(countries,by =c("pays"="country"))
+```
+
+### Graph
+
+```{r}
+
+data_president_continent %>%
+  filter(str_detect(country,"President"))%>%
+  filter(annee_au_pouvoir >= 10)%>%
+  group_by(continent)%>%
+  summarise(total = n())%>%
+  mutate(continent = fct_reorder(continent,total))%>%
+  ggplot(mapping = aes(continent , total , fill = continent ))+
+  geom_col()+
+  coord_flip()+
+  theme_minimal()+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.08))+
+  scale_y_continuous(breaks = 0:15)+
+  labs(x = "Continent",y="Nombre d'année au pouvoir",title = "Président qui sont au pouvoir depuis au moins au dix ans par continent")
+  
+```
+
