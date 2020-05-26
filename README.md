@@ -6,4 +6,5 @@ More intersting question can be asked , as I found another dataset which explain
 
 We can check the correlation of happiness,liberty of expression and so on with the number of year a president has been in power.
 
-As we can see in this notebook , the last graph demonstrate that Africa has a long way to reach democrac .
+As we can see in this notebook , the last graph demonstrate that most countries with president that have been there for ages are african countries.
+
